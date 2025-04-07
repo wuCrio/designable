@@ -52,12 +52,12 @@
     "@formily/react": "^2.0.2",
     "@formily/reactive": "^2.0.2",
     "@formily/shared": "^2.0.2",
-    "@types/react": ">=16.8.0 || >=17.0.0",
-    "@types/react-dom": ">=16.8.0 || >=17.0.0",
+    "@types/react": "17.x",
+    "@types/react-dom": "17.x",
     "antd": "^4.0.0",
-    "react": ">=16.8.0 || >=17.0.0",
+    "react": "17.x",
     "react-dom": ">=16.8.0",
-    "react-is": ">=16.8.0 || >=17.0.0"
+    "react-is": "17.x"
   },
   "dependencies": {
     "@designable/core": "1.0.0-beta.45",
