@@ -322,7 +322,7 @@ const Actions = observer(() => (
 ))
 
 const engine = createDesigner()
-window.engine = engine
+globalThis.engine = engine
 const App = () => {
   return (
     <Designer engine={engine}>

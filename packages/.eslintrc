@@ -9,7 +9,12 @@
   "env": {
     "node": true
   },
-  "plugins": ["@typescript-eslint", "react", "prettier", "markdown"],
+  "plugins": [
+    "@typescript-eslint",
+    "react",
+    "prettier",
+    "markdown"
+  ],
   "parserOptions": {
     "sourceType": "module",
     "ecmaVersion": 10,
@@ -52,7 +57,11 @@
     "no-console": [
       "error",
       {
-        "allow": ["warn", "error", "info"]
+        "allow": [
+          "warn",
+          "error",
+          "info"
+        ]
       }
     ],
     "prefer-const": 0,
@@ -61,11 +70,15 @@
   },
   "overrides": [
     {
-      "files": ["**/*.md"],
+      "files": [
+        "**/*.md"
+      ],
       "processor": "markdown/markdown"
     },
     {
-      "files": ["**/*.md/*.{jsx,tsx}"],
+      "files": [
+        "**/*.md/*.{jsx,tsx}"
+      ],
       "rules": {
         "@typescript-eslint/no-unused-vars": "error",
         "no-unused-vars": "error",
