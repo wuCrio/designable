@@ -1,0 +1,550 @@
+/* 设计器专用样式 */
+
+/* 设计区域样式增强 */
+.designer-root {
+  position: relative;
+  min-height: 600px;
+  width: 100%;
+}
+
+/* 组件选中状态 */
+.designer-component {
+  position: relative;
+  margin: 8px;
+  transition: all 0.2s ease;
+}
+
+.designer-component:hover {
+  box-shadow: 0 0 0 2px #409eff;
+}
+
+.designer-component.selected {
+  box-shadow: 0 0 0 2px #409eff;
+  outline: 2px solid #409eff;
+  border-radius: 4px;
+  z-index: 10;
+}
+
+/* 组件拖拽悬浮状态 */
+.designer-component.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.designer-component.drag-over {
+  border: 2px dashed #409eff;
+  background-color: #f0f9ff;
+}
+
+/* 组件拖拽占位符 */
+.drag-placeholder {
+  min-height: 20px;
+  margin: 4px 0;
+  background-color: #e6f7ff;
+  border: 2px dashed #409eff;
+  border-radius: 4px;
+}
+
+/* 组件操作手柄 */
+.component-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: #fff;
+  border: 1px solid #409eff;
+  border-radius: 2px;
+  cursor: nwse-resize;
+  z-index: 20;
+}
+
+.component-handle.top-left {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.component-handle.top-right {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.component-handle.bottom-left {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
+}
+
+.component-handle.bottom-right {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+
+/* 组件工具栏 */
+.component-toolbar {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  z-index: 30;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.designer-component.selected .component-toolbar {
+  opacity: 1;
+}
+
+.component-toolbar button {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background-color: transparent;
+  color: #606266;
+  cursor: pointer;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.component-toolbar button:hover {
+  background-color: #f5f7fa;
+  color: #409eff;
+}
+
+.component-toolbar button:active {
+  background-color: #ecf5ff;
+}
+
+/* 属性面板样式增强 */
+.property-panel {
+  background-color: #fff;
+  border-left: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  height: 100%;
+}
+
+.property-header {
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f5f7fa;
+  font-weight: 500;
+  color: #303133;
+}
+
+.property-content {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.property-group {
+  margin-bottom: 20px;
+}
+
+.property-group-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #606266;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.property-item {
+  margin-bottom: 15px;
+}
+
+.property-item label {
+  display: block;
+  font-size: 12px;
+  color: #606266;
+  margin-bottom: 5px;
+}
+
+.property-item .el-input,
+.property-item .el-select,
+.property-item .el-switch,
+.property-item .el-slider,
+.property-item .el-color-picker {
+  width: 100%;
+}
+
+/* 颜色属性编辑器 */
+.color-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-picker-wrapper .el-color-picker {
+  width: auto;
+}
+
+.color-picker-wrapper .el-input {
+  flex: 1;
+}
+
+/* JSON编辑器样式 */
+.json-editor {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.json-editor-header {
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.json-editor-content {
+  min-height: 200px;
+  max-height: 400px;
+  overflow: auto;
+  padding: 12px;
+  background-color: #fafafa;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 组件库样式增强 */
+.component-library {
+  background-color: #f5f7fa;
+  border-right: 1px solid #e0e0e0;
+  width: 240px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.component-library-header {
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #fff;
+  font-weight: 500;
+  color: #303133;
+}
+
+.component-library-search {
+  padding: 10px;
+  background-color: #fff;
+}
+
+.component-categories {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.category-section {
+  margin-bottom: 20px;
+}
+
+.category-title {
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #606266;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.component-items {
+  padding: 10px;
+  background-color: #fff;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.component-item {
+  padding: 10px;
+  background-color: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: move;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  height: 80px;
+}
+
+.component-item:hover {
+  background-color: #ecf5ff;
+  border-color: #409eff;
+  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.2);
+}
+
+.component-item .component-icon {
+  font-size: 24px;
+  color: #409eff;
+}
+
+.component-item .component-name {
+  font-size: 12px;
+  color: #606266;
+  text-align: center;
+}
+
+/* 拖拽时的样式 */
+.drag-indicator {
+  position: fixed;
+  top: -100px;
+  left: -100px;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.8;
+}
+
+.drag-indicator-content {
+  background-color: #fff;
+  border: 1px solid #409eff;
+  border-radius: 4px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+/* 响应式调整 */
+@media (max-width: 1200px) {
+  .component-library {
+    width: 200px;
+  }
+  
+  .property-panel {
+    width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .component-library,
+  .property-panel {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .component-library.open,
+  .property-panel.open {
+    transform: translateX(0);
+  }
+}
+
+/* 滚动条样式增强 */
+.component-categories::-webkit-scrollbar,
+.property-content::-webkit-scrollbar,
+.json-editor-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.component-categories::-webkit-scrollbar-track,
+.property-content::-webkit-scrollbar-track,
+.json-editor-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.component-categories::-webkit-scrollbar-thumb,
+.property-content::-webkit-scrollbar-thumb,
+.json-editor-content::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 3px;
+}
+
+.component-categories::-webkit-scrollbar-thumb:hover,
+.property-content::-webkit-scrollbar-thumb:hover,
+.json-editor-content::-webkit-scrollbar-thumb:hover {
+  background: #909399;
+}
+
+/* 加载状态 */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* 空状态 */
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: #909399;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: #c0c4cc;
+}
+
+.empty-state-text {
+  font-size: 14px;
+}
+
+/* 成功/错误提示 */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.notification.success {
+  background-color: #f0f9ff;
+  border-left: 4px solid #409eff;
+  color: #409eff;
+}
+
+.notification.error {
+  background-color: #fef0f0;
+  border-left: 4px solid #f56c6c;
+  color: #f56c6c;
+}
+
+.notification.warning {
+  background-color: #fdf6ec;
+  border-left: 4px solid #e6a23c;
+  color: #e6a23c;
+}
+
+.notification.info {
+  background-color: #f4f4f5;
+  border-left: 4px solid #909399;
+  color: #909399;
+}
+
+/* 工具提示 */
+.tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2000;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tooltip.show {
+  opacity: 1;
+}
+
+/* 网格线背景 */
+.grid-background {
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* 辅助线 */
+.guide-line {
+  position: fixed;
+  background-color: #409eff;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.5;
+}
+
+.guide-line.horizontal {
+  height: 1px;
+  left: 0;
+  right: 0;
+}
+
+.guide-line.vertical {
+  width: 1px;
+  top: 0;
+  bottom: 0;
+}
