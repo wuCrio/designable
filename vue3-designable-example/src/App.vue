@@ -1,26 +1,41 @@
 <script setup lang="ts">
 import './assets/designer-styles.css';
 import { reactive, provide, ref, onMounted } from 'vue';
-import { ElMessage, ElButton, ElMessageBox, ElTree } from 'element-plus';
+import { message, Modal } from 'ant-design-vue';
 import { DesignerEngine } from './engine/DesignerEngine';
+import { ComponentRegistry } from './engine/ComponentRegistry';
 import type { ComponentTree } from './engine/DesignerEngine';
 import ComponentRenderer from './components/ComponentRenderer.vue';
 import PropertyPanel from './components/PropertyPanel.vue';
 import ComponentLibrary from './components/ComponentLibrary.vue';
 import ExamplePage from './views/ExamplePage.vue';
+// Formily相关导入
+import { createForm } from '@formily/core';
+import { FormProvider } from '@formily/vue';
 
 // 设计器引擎实例
 const engine = new DesignerEngine();
 
+// 创建全局Formily表单实例
+const formilyForm = createForm({
+  initialValues: {},
+  onSubmit: (values) => {
+    console.log('表单提交:', values);
+    message.success('表单提交成功');
+  }
+});
+
 // 设计器状态
-  const designerState = reactive<any>({
-    // 组件树
-    componentTree: ref<ComponentTree>({
-      id: 'root',
-      type: 'Root',
-      props: {},
-      children: []
-    }),
+  const baseDesignerState = reactive<any>({
+    // 组件树 - 与DesignerEngine保持一致的数组结构
+    componentTree: ref<ComponentTree[]>([
+      {
+        id: 'root',
+        type: 'Root',
+        props: {},
+        children: []
+      }
+    ]),
     // 选中的组件ID
     selectedComponentId: ref<string | null>(null),
     // 历史记录状态
@@ -31,91 +46,119 @@ const engine = new DesignerEngine();
     activeView: 'designer', // 使用any类型避免类型错误
     previousView: 'designer' // 保存上一个视图
   });
+  
+  // 创建包含方法的扩展设计器状态
+  const designerState = reactive<any>({
+    ...baseDesignerState,
+    // 选择组件
+    selectComponent: (componentId: string) => {
+      baseDesignerState.selectedComponentId.value = componentId;
+    },
+    // 获取组件
+    getComponentById: (_id: string) => {
+      return engine.getSelectedComponent();
+    },
+    // 添加组件
+    addComponent: (parentId: string, component: ComponentTree) => {
+      try {
+        const componentData = { ...component, type: component.type };
+        const newId = engine.addComponent(parentId, componentData);
+        if (newId) {
+          const state = engine.getState();
+          baseDesignerState.componentTree.value = state.componentTree;
+          updateHistoryState();
+          message.success('组件添加成功');
+          
+          if (['Form', 'Input', 'Select', 'Switch'].includes(component.type)) {
+            console.log('Formily组件添加:', component.type, componentData);
+            const formilySchema = ComponentRegistry.convertToFormilySchema(baseDesignerState.componentTree.value);
+            console.log('Formily Schema:', formilySchema);
+          }
+          
+          return true;
+        }
+        updateHistoryState();
+        return false;
+      } catch (error) {
+        console.error('组件添加失败:', error);
+        message.error('组件添加失败');
+        return false;
+      }
+    },
+    // 更新组件
+    updateComponent: (id: string, updates: Partial<ComponentTree>) => {
+      try {
+        const success = engine.updateComponentProps(id, updates.props || {});
+        if (success) {
+          const state = engine.getState();
+          baseDesignerState.componentTree.value = state.componentTree;
+          updateHistoryState();
+          return true;
+        }
+        updateHistoryState();
+        return false;
+      } catch (error) {
+        message.error('组件更新失败');
+        return false;
+      }
+    },
+    // 删除组件
+    removeComponent: (id: string) => {
+      Modal.confirm({
+        title: '提示',
+        content: '确定要删除这个组件吗？',
+        okText: '确定',
+        cancelText: '取消',
+        onOk() {
+          try {
+            const success = engine.removeComponent(id);
+            if (success) {
+              const state = engine.getState();
+              baseDesignerState.componentTree.value = state.componentTree;
+              baseDesignerState.selectedComponentId.value = null;
+              updateHistoryState();
+              message.success('组件删除成功');
+              return true;
+            }
+            baseDesignerState.selectedComponentId.value = null;
+            updateHistoryState();
+            return false;
+          } catch (error) {
+            message.error('组件删除失败');
+          }
+        }
+      });
+    },
+    // 撤销
+    undo: () => {
+      if (engine.undo()) {
+        const state = engine.getState();
+        baseDesignerState.componentTree.value = state.componentTree;
+        updateHistoryState();
+        return true;
+      }
+      return false;
+    },
+    // 重做
+    redo: () => {
+      if (engine.redo()) {
+        const state = engine.getState();
+        baseDesignerState.componentTree.value = state.componentTree;
+        updateHistoryState();
+        return true;
+      }
+      return false;
+    }
+  });
 
 // 提供设计器引擎给子组件
 provide('designerEngine', engine);
 
+// 提供Formily表单实例给子组件
+provide('formilyForm', formilyForm);
+
 // 提供设计器状态给子组件
-provide('designerState', {
-  ...designerState,
-  // 选择组件
-  selectComponent: (componentId: string) => {
-    designerState.selectedComponentId = componentId;
-  },
-  // 获取组件
-  getComponentById: (_id: string) => {
-    // 从DesignerEngine获取选中的组件
-    return engine.getSelectedComponent();
-  },
-  // 添加组件
-  addComponent: (parentId: string, component: ComponentTree) => {
-    try {
-      // 使用正确的参数格式调用addComponent
-      const componentData = { ...component, type: component.type };
-      const newId = engine.addComponent(parentId, componentData);
-      // DesignerEngine内部会处理状态更新，这里只需要更新本地状态的引用
-      if (newId) {
-        const state = engine.getState();
-        designerState.componentTree = state.componentTree[0];
-        updateHistoryState();
-        ElMessage.success('组件添加成功');
-        return true;
-      }
-      // 保持逻辑一致性的占位代码
-      updateHistoryState();
-      return false;
-    } catch (error) {
-      ElMessage.error('组件添加失败');
-      return false;
-    }
-  },
-  // 更新组件
-  updateComponent: (id: string, updates: Partial<ComponentTree>) => {
-    try {
-      // 使用正确的参数格式调用updateComponentProps
-      const success = engine.updateComponentProps(id, updates.props || {});
-      if (success) {
-        const state = engine.getState();
-        designerState.componentTree = state.componentTree[0];
-        updateHistoryState();
-        return true;
-      }
-      // 保持逻辑一致性的占位代码
-      updateHistoryState();
-      return false;
-    } catch (error) {
-      ElMessage.error('组件更新失败');
-      return false;
-    }
-  },
-  // 删除组件
-  removeComponent: (id: string) => {
-    ElMessageBox.confirm('确定要删除这个组件吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }).then(() => {
-      try {
-        // 使用正确的参数格式调用removeComponent
-        const success = engine.removeComponent(id);
-        if (success) {
-          const state = engine.getState();
-          designerState.componentTree = state.componentTree[0];
-          designerState.selectedComponentId = null;
-          updateHistoryState();
-          ElMessage.success('组件删除成功');
-          return true;
-        }
-        // 保持逻辑一致性的占位代码
-        designerState.selectedComponentId = null;
-        updateHistoryState();
-        return false;
-      } catch (error) {
-        ElMessage.error('组件删除失败');
-      }
-    }).catch(() => {});
-  }
-});
+provide('designerState', designerState);
 
 // 生成组件树数据（用于大纲树）
 const generateTreeData = (node: ComponentTree): any => {
@@ -137,7 +180,12 @@ const treeData = ref<any[]>([]);
 
 // 更新树数据
 const updateTreeData = () => {
-  treeData.value = [generateTreeData(designerState.componentTree)];
+  // 确保componentTree.value存在且有元素
+  if (designerState.componentTree.value && designerState.componentTree.value.length > 0) {
+    treeData.value = [generateTreeData(designerState.componentTree.value[0])];
+  } else {
+    treeData.value = [];
+  }
 };
 
 // 处理树节点点击
@@ -151,12 +199,12 @@ const handleUndo = () => {
     const success = engine.undo();
     if (success) {
       const state = engine.getState();
-      designerState.componentTree = state.componentTree[0];
-      updateHistoryState();
-      ElMessage.success('撤销成功');
+                designerState.componentTree.value = state.componentTree;
+                updateHistoryState();
+      message.success('撤销成功');
     }
   } catch (error) {
-    ElMessage.error('无法撤销');
+    message.error('无法撤销');
   }
 };
 
@@ -166,12 +214,12 @@ const handleRedo = () => {
     const success = engine.redo();
     if (success) {
       const state = engine.getState();
-      designerState.componentTree = state.componentTree[0];
-      updateHistoryState();
-      ElMessage.success('重做成功');
+                designerState.componentTree.value = state.componentTree;
+                updateHistoryState();
+      message.success('重做成功');
     }
   } catch (error) {
-    ElMessage.error('无法重做');
+    message.error('无法重做');
   }
 };
 
@@ -199,9 +247,9 @@ const updateHistoryState = () => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      ElMessage.success('保存成功');
+      message.success('保存成功');
     } catch (error) {
-      ElMessage.error('保存失败');
+      message.error('保存失败');
     }
   };
 
@@ -219,16 +267,17 @@ const updateHistoryState = () => {
             const data = JSON.parse(e.target?.result as string);
             // 使用engine的importTree方法来导入设计
             if (engine.importTree(JSON.stringify(data))) {
-              designerState.componentTree = data;
+              const state = engine.getState();
+              designerState.componentTree.value = state.componentTree;
               updateHistoryState();
-              ElMessage.success('导入成功');
+              message.success('导入成功');
               return;
             } else {
-              ElMessage.error('导入失败：文件格式不正确');
+              message.error('导入失败：文件格式不正确');
               return;
             }
           } catch (error) {
-            ElMessage.error('文件格式不正确');
+            message.error('文件格式不正确');
           }
         };
         reader.readAsText(file);
@@ -239,7 +288,7 @@ const updateHistoryState = () => {
 
 // 发布设计
 const handlePublish = () => {
-  ElMessage.success('发布成功');
+  message.success('发布成功');
 };
 
 // 切换预览模式
@@ -261,32 +310,67 @@ const switchView = (view: string) => {
 
 // 清空设计
   const handleClear = () => {
-    ElMessageBox.confirm('确定要清空所有设计内容吗？', '警告', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'error'
-    }).then(() => {
-      // 注意：saveHistory是私有方法，不能直接调用
-      const newTree: ComponentTree = {
-        id: 'root',
-        type: 'Root',
-        props: {},
-        children: []
-      };
-      // 使用engine的importTree方法来重置设计
-        if (engine.importTree(JSON.stringify(newTree))) {
-          designerState.componentTree = newTree;
-          designerState.selectedComponentId = null;
-          updateHistoryState();
-        }
-      ElMessage.success('已清空设计');
-    }).catch(() => {});
+    Modal.confirm({
+          title: '警告',
+          content: '确定要清空所有设计内容吗？',
+          okText: '确定',
+          cancelText: '取消',
+          onOk() {
+            // 注意：saveHistory是私有方法，不能直接调用
+            const newTree: ComponentTree = {
+              id: 'root',
+              type: 'Root',
+              props: {},
+              children: []
+            };
+            // 使用engine的importTree方法来重置设计
+              // 将单个根节点包装为数组格式
+              const treeArray = [newTree];
+              if (engine.importTree(JSON.stringify(treeArray))) {
+                const state = engine.getState();
+                designerState.componentTree.value = state.componentTree;
+                designerState.selectedComponentId.value = null;
+                updateHistoryState();
+              }
+            message.success('已清空设计');
+          }
+        });
   };
 
 // 初始化
   onMounted(() => {
     // 历史记录在engine内部自动处理
     updateHistoryState();
+    
+    // 添加一个示例组件到画布，方便测试
+    setTimeout(() => {
+      try {
+        const initialComponent = {
+          id: 'card_example_' + Date.now(),
+          type: 'Card',
+          props: {
+            title: '示例卡片',
+            style: {
+              width: '300px',
+              height: '200px',
+              margin: '20px'
+            }
+          },
+          children: []
+        };
+        
+        // 添加到根组件
+        const success = engine.addComponent('root', initialComponent);
+        if (success) {
+          console.log('示例组件添加成功');
+          const state = engine.getState();
+          designerState.componentTree.value = state.componentTree;
+          updateHistoryState();
+        }
+      } catch (error) {
+        console.error('添加示例组件失败:', error);
+      }
+    }, 1000);
   });
 </script>
 
@@ -298,46 +382,47 @@ const switchView = (view: string) => {
         <h1>Vue 3 设计器</h1>
       </div>
       <div class="toolbar-center">
-        <el-button 
+        <a-button 
           @click="switchView('designer')" 
-          :type="designerState.activeView === 'designer' ? 'primary' : ''"
-          icon="Edit"
+          :type="designerState.activeView === 'designer' ? 'primary' : 'default'"
+          icon="edit"
           title="设计器"
-        >设计器</el-button>
-        <el-button 
+        >设计器</a-button>
+        <a-button 
           @click="switchView('example')" 
-          :type="designerState.activeView === 'example' ? 'primary' : ''"
-          icon="Document"
+          :type="designerState.activeView === 'example' ? 'primary' : 'default'"
+          icon="file-text"
           title="示例"
-        >示例</el-button>
-        <el-button 
+        >示例</a-button>
+        <a-button 
           v-if="designerState.activeView === 'designer'"
           @click="handleUndo" 
           :disabled="!designerState.history.canUndo"
-          icon="RefreshLeft"
+          icon="undo"
           title="撤销"
-        >撤销</el-button>
-        <el-button 
+        >撤销</a-button>
+        <a-button 
           v-if="designerState.activeView === 'designer'"
           @click="handleRedo" 
           :disabled="!designerState.history.canRedo"
-          icon="RefreshRight"
+          icon="redo"
           title="重做"
-        >重做</el-button>
+        >重做</a-button>
       </div>
       <div class="toolbar-right" v-if="designerState.activeView === 'designer'">
-        <el-button @click="togglePreviewMode" icon="View">
+        <a-button @click="togglePreviewMode" icon="eye">
           {{ designerState.activeView === 'preview' ? '编辑模式' : '预览模式' }}
-        </el-button>
-        <el-button @click="handleSave" type="primary" icon="Download">保存</el-button>
-        <el-button @click="handleImport" icon="Upload">导入</el-button>
-        <el-button @click="handlePublish" type="success" icon="Promotion">发布</el-button>
-        <el-button @click="handleClear" type="danger" icon="Delete">清空</el-button>
+        </a-button>
+        <a-button @click="handleSave" type="primary" icon="download">保存</a-button>
+        <a-button @click="handleImport" icon="upload">导入</a-button>
+        <a-button @click="handlePublish" type="success" icon="rocket">发布</a-button>
+        <a-button @click="handleClear" type="danger" icon="delete">清空</a-button>
       </div>
     </div>
     
     <!-- 主内容区 -->
-    <div v-if="designerState.activeView === 'designer'" class="designer-main">
+    <FormProvider :form="formilyForm">
+      <div v-if="designerState.activeView === 'designer'" class="designer-main">
       <!-- 左侧组件库 -->
       <ComponentLibrary />
       
@@ -345,8 +430,10 @@ const switchView = (view: string) => {
       <div class="design-area">
         <div class="design-canvas">
           <ComponentRenderer 
-            :component="designerState.componentTree" 
+            v-if="designerState.componentTree.value && designerState.componentTree.value.length > 0"
+            :component="designerState.componentTree.value[0]" 
             :is-design-mode="designerState.activeView !== 'preview'"
+            :designer-state="designerState"
           />
         </div>
         
@@ -356,13 +443,11 @@ const switchView = (view: string) => {
             <h3>大纲</h3>
           </div>
           <div class="outline-content">
-            <el-tree 
-              :data="treeData" 
-              node-key="key"
-              @node-click="handleTreeNodeClick"
-              :default-expanded-keys="['root']"
-              :highlight-current="true"
-            />
+            <a-tree 
+          :tree-data="treeData" 
+          :default-expanded-keys="['root']"
+          @select="handleTreeNodeClick"
+        />
           </div>
         </div>
       </div>
@@ -375,6 +460,7 @@ const switchView = (view: string) => {
     <div v-else-if="designerState.activeView === 'example'" class="example-container">
       <ExamplePage />
     </div>
+    </FormProvider>
   </div>
 </template>
 

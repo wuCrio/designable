@@ -2,6 +2,7 @@
 
 import type { ComponentTree } from './DesignerEngine';
 import { ExtendedComponents } from './ExtendedComponents';
+// 移除错误的FormilyAdapter导入，因为FormilyAdapter.ts中没有这个导出
 
 export interface ComponentMetadata {
   id: string;
@@ -122,6 +123,35 @@ export class ComponentRegistry {
       children: component.isContainer ? [] : undefined
     };
   }
+
+  // 获取Formily组件Schema
+  static getComponentSchema(componentId: string): any {
+    const component = this.getComponent(componentId);
+    if (!component) {
+      throw new Error(`Component ${componentId} not found`);
+    }
+
+    // 直接返回基于组件信息的简单schema
+    return {
+      type: 'object',
+      properties: component.propsSchema || {}
+    };
+  }
+
+  // 转换组件树为Formily Schema
+  static convertToFormilySchema(componentTree: ComponentTree): any {
+    // 简单实现，返回基本的schema结构
+    return {
+      type: 'object',
+      properties: {}
+    };
+  }
+
+  // 获取Formily表单实例
+  static createFormilyForm(initialValues?: Record<string, any>) {
+    // 直接返回null，因为FormilyAdapter已移除
+    return null;
+  }
 }
 
 // 初始化扩展组件 - 适配ComponentRegistry的结构
@@ -135,19 +165,19 @@ Object.values(ExtendedComponents).forEach(component => {
     group: component.group,
     defaultProps: component.defaultProps,
     propsSchema: {
-        // 从propsConfig构建propsSchema
-        ...Object.fromEntries((component.propsConfig || []).map((prop: any) => [
-          prop.name,
-          {
-            type: prop.type,
-            label: prop.name,
-            default: prop.default,
-            ...(prop.options && { enum: prop.options }),
-            ...(prop.min !== undefined && { minimum: prop.min }),
-            ...(prop.max !== undefined && { maximum: prop.max })
-          }
-        ]))
-      },
+      // 从propsConfig构建propsSchema
+      ...Object.fromEntries((component.propsConfig || []).map((prop: any) => [
+        prop.name,
+        {
+          type: prop.type,
+          label: prop.name,
+          default: prop.default,
+          ...(prop.options && { enum: prop.options }),
+          ...(prop.min !== undefined && { minimum: prop.min }),
+          ...(prop.max !== undefined && { maximum: prop.max })
+        }
+      ]))
+    },
     isContainer: ['Form', 'Card', 'Row', 'Col'].includes(component.id),
     droppable: ['Form', 'Card', 'Row', 'Col'].includes(component.id)
   };
@@ -201,7 +231,9 @@ ComponentRegistry.registerBehavior({
             const width = typeof node.props.style.width === 'string' 
               ? parseInt(node.props.style.width) || 200 
               : 200;
-            node.props.style.width = `${Math.max(100, width - 10)}px`;
+            if (width > 100) {
+              node.props.style.width = `${width - 10}px`;
+            }
           }
     })
   },
@@ -210,8 +242,94 @@ ComponentRegistry.registerBehavior({
 
 // 布局组件行为
 ComponentRegistry.registerBehavior({
-  selector: (node) => node.type === 'Card',
+  selector: (node) => ['Card', 'Row', 'Col'].includes(node.type),
   droppable: true,
+  resizable: {
+    width: (node) => ({
+      plus: () => {
+            if (!node.props) node.props = {};
+            if (!node.props.style) node.props.style = {};
+            if (node.props.style.width) {
+              const width = typeof node.props.style.width === 'string' 
+                ? parseInt(node.props.style.width) || 200 
+                : 200;
+              node.props.style.width = `${width + 20}px`;
+            } else {
+              node.props.style.width = '220px';
+            }
+          },
+          minus: () => {
+            if (!node.props || !node.props.style || !node.props.style.width) return;
+            const width = typeof node.props.style.width === 'string' 
+              ? parseInt(node.props.style.width) || 200 
+              : 200;
+            if (width > 120) {
+              node.props.style.width = `${width - 20}px`;
+            }
+          }
+    }),
+    height: (node) => ({
+      plus: () => {
+            if (!node.props) node.props = {};
+            if (!node.props.style) node.props.style = {};
+            if (node.props.style.height) {
+              const height = typeof node.props.style.height === 'string' 
+                ? parseInt(node.props.style.height) || 100 
+                : 100;
+              node.props.style.height = `${height + 20}px`;
+            } else {
+              node.props.style.height = '120px';
+            }
+          },
+          minus: () => {
+            if (!node.props || !node.props.style || !node.props.style.height) return;
+            const height = typeof node.props.style.height === 'string' 
+              ? parseInt(node.props.style.height) || 100 
+              : 100;
+            if (height > 60) {
+              node.props.style.height = `${height - 20}px`;
+            }
+          }
+    })
+  },
+  translatable: true
+});
+
+// 基础组件行为
+ComponentRegistry.registerBehavior({
+  selector: (node) => ['Button', 'Text', 'Divider'].includes(node.type),
+  resizable: {
+    width: (node) => ({
+      plus: () => {
+            if (!node.props) node.props = {};
+            if (!node.props.style) node.props.style = {};
+            if (node.props.style.width) {
+              const width = typeof node.props.style.width === 'string' 
+                ? parseInt(node.props.style.width) || 80 
+                : 80;
+              node.props.style.width = `${width + 10}px`;
+            } else {
+              node.props.style.width = '90px';
+            }
+          },
+          minus: () => {
+            if (!node.props || !node.props.style || !node.props.style.width) return;
+            const width = typeof node.props.style.width === 'string' 
+              ? parseInt(node.props.style.width) || 80 
+              : 80;
+            if (width > 60) {
+              node.props.style.width = `${width - 10}px`;
+            }
+          }
+    })
+  },
+  translatable: true
+});
+
+// 数据组件行为
+ComponentRegistry.registerBehavior({
+  selector: (node) => ['Table'].includes(node.type),
+  droppable: false,
   resizable: {
     width: (node) => ({
       plus: () => {
@@ -221,9 +339,9 @@ ComponentRegistry.registerBehavior({
               const width = typeof node.props.style.width === 'string' 
                 ? parseInt(node.props.style.width) || 300 
                 : 300;
-              node.props.style.width = `${width + 20}px`;
+              node.props.style.width = `${width + 30}px`;
             } else {
-              node.props.style.width = '320px';
+              node.props.style.width = '330px';
             }
           },
           minus: () => {
@@ -231,7 +349,9 @@ ComponentRegistry.registerBehavior({
             const width = typeof node.props.style.width === 'string' 
               ? parseInt(node.props.style.width) || 300 
               : 300;
-            node.props.style.width = `${Math.max(200, width - 20)}px`;
+            if (width > 200) {
+              node.props.style.width = `${width - 30}px`;
+            }
           }
     }),
     height: (node) => ({
@@ -242,105 +362,21 @@ ComponentRegistry.registerBehavior({
               const height = typeof node.props.style.height === 'string' 
                 ? parseInt(node.props.style.height) || 200 
                 : 200;
-              node.props.style.height = `${height + 20}px`;
+              node.props.style.height = `${height + 30}px`;
             } else {
-              node.props.style.height = '220px';
-            }
-          },
-      minus: () => {
-        if (node.props?.style?.height) {
-          const height = typeof node.props.style.height === 'string' 
-            ? parseInt(node.props.style.height) || 200 
-            : 200;
-          node.props.style.height = `${Math.max(100, height - 20)}px`;
-        }
-      }
-    })
-  },
-  translatable: true
-});
-
-// Row/Col布局组件行为
-ComponentRegistry.registerBehavior({
-  selector: (node) => ['Row', 'Col'].includes(node.type),
-  droppable: true,
-  translatable: true
-});
-
-// 基础组件行为
-ComponentRegistry.registerBehavior({
-  selector: (node) => ['Button', 'Text', 'Divider'].includes(node.type),
-  translatable: true
-});
-
-// 表格组件行为
-ComponentRegistry.registerBehavior({
-  selector: (node) => node.type === 'Table',
-  droppable: true,
-  resizable: {
-    width: (node) => ({
-      plus: () => {
-            if (!node.props) node.props = {};
-            if (!node.props.style) node.props.style = {};
-            if (node.props.style.width) {
-              const width = typeof node.props.style.width === 'string' 
-                ? parseInt(node.props.style.width) || 600 
-                : 600;
-              node.props.style.width = `${width + 50}px`;
-            } else {
-              node.props.style.width = '650px';
-            }
-          },
-          minus: () => {
-            if (!node.props || !node.props.style || !node.props.style.width) return;
-            const width = typeof node.props.style.width === 'string' 
-              ? parseInt(node.props.style.width) || 600 
-              : 600;
-            node.props.style.width = `${Math.max(400, width - 50)}px`;
-          }
-    }),
-    height: (node) => ({
-      plus: () => {
-            if (!node.props) node.props = {};
-            if (!node.props.style) node.props.style = {};
-            if (node.props.style.height) {
-              const height = typeof node.props.style.height === 'string' 
-                ? parseInt(node.props.style.height) || 300 
-                : 300;
-              node.props.style.height = `${height + 50}px`;
-            } else {
-              node.props.style.height = '350px';
+              node.props.style.height = '230px';
             }
           },
           minus: () => {
             if (!node.props || !node.props.style || !node.props.style.height) return;
             const height = typeof node.props.style.height === 'string' 
-              ? parseInt(node.props.style.height) || 300 
-              : 300;
-            node.props.style.height = `${Math.max(200, height - 50)}px`;
+              ? parseInt(node.props.style.height) || 200 
+              : 200;
+            if (height > 150) {
+              node.props.style.height = `${height - 30}px`;
+            }
           }
     })
   },
   translatable: true
-});
-
-// 初始化默认语言
-ComponentRegistry.registerLocales('zh-cn', {
-  'components.basic': '基础组件',
-  'components.layout': '布局组件',
-  'panel.title': '属性设置',
-  'action.add': '添加',
-  'action.remove': '删除',
-  'action.save': '保存',
-  'action.publish': '发布'
-});
-
-ComponentRegistry.registerLocales('en-us', {
-  'components.basic': 'Basic Components',
-  'components.layout': 'Layout Components',
-  'panel.title': 'Property Settings',
-  'action.add': 'Add',
-  'action.remove': 'Remove',
-  'action.save': 'Save',
-  'action.publish': 'Publish'
 });

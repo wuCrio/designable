@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue';
+import { computed, inject, watch } from 'vue';
 import { ComponentRegistry } from '../engine/ComponentRegistry';
-import { ElInput, ElForm, ElFormItem, ElSelect, ElOption, ElColorPicker, ElInputNumber, ElSwitch } from 'element-plus';
+import { FormProvider } from '@formily/vue';
+import { createForm } from '@formily/core';
 
 // 获取设计器状态
 const designerState = inject<any>('designerState');
@@ -55,7 +56,19 @@ const handlePropChange = (propPath: string, value: any) => {
   setNestedProperty(props, propPath, value);
   
   designerState.updateComponent(selectedComponent.value.id, { props });
+  
+  // 通知Formily表单更新
+  if (isFormilyComponent.value) {
+    console.log('Formily组件属性更新:', selectedComponent.value.type, props);
+  }
 };
+
+// 判断是否是Formily组件
+const isFormilyComponent = computed(() => {
+  if (!selectedComponent.value) return false;
+  const formilyTypes = ['Form', 'Input', 'Select', 'Switch'];
+  return formilyTypes.includes(selectedComponent.value.type);
+});
 
 // 获取属性值
 const getPropValue = (propPath: string): any => {
@@ -71,12 +84,21 @@ const getPropValue = (propPath: string): any => {
   
   return current;
 };
+
+// 删除组件
+const handleDeleteComponent = () => {
+  if (!designerState || !selectedComponent.value) return;
+  designerState.removeComponent(selectedComponent.value.id);
+};
 </script>
 
 <template>
   <div class="property-panel">
     <div class="panel-header">
       <h3>{{ ComponentRegistry.t('panel.title') }}</h3>
+      <div class="panel-actions">
+        <a-button type="link" size="small" @click="handleDeleteComponent">删除组件</a-button>
+      </div>
     </div>
     
     <div v-if="!selectedComponent" class="empty-state">
@@ -89,16 +111,16 @@ const getPropValue = (propPath: string): any => {
         <p class="component-id">{{ selectedComponent.id }}</p>
       </div>
       
-      <el-form label-position="top" size="small">
+      <a-form label-position="top" size="small">
         <!-- 渲染基础属性 -->
         <div class="property-section">
           <h4>基础属性</h4>
-          <el-form-item label="组件ID">
-            <el-input v-model="selectedComponent.id" disabled />
-          </el-form-item>
-          <el-form-item label="组件类型">
-            <el-input v-model="selectedComponent.type" disabled />
-          </el-form-item>
+          <a-form-item label="组件ID">
+            <a-input v-model:value="selectedComponent.id" disabled />
+          </a-form-item>
+          <a-form-item label="组件类型">
+            <a-input v-model:value="selectedComponent.type" disabled />
+          </a-form-item>
         </div>
         
         <!-- 渲染自定义属性 -->
@@ -108,100 +130,90 @@ const getPropValue = (propPath: string): any => {
             <div v-if="schema.type === 'object'" class="object-group">
               <h4 class="object-group-title">{{ schema.label || propKey }}</h4>
               <template v-for="(subSchema, subKey) in schema.properties" :key="subKey">
-                <el-form-item :label="subSchema.label || subKey">
-                  <el-input
+                <a-form-item :label="subSchema.label || subKey">
+                  <a-input
                     :value="getPropValue(`${propKey}.${subKey}`)"
-                    @input="(val) => handlePropChange(`${propKey}.${subKey}`, val)"
+                    @input="(val: string) => handlePropChange(`${propKey}.${subKey}`, val)"
                     :placeholder="`请输入${subSchema.label || subKey}`"
                   />
-                </el-form-item>
+                </a-form-item>
               </template>
             </div>
-            <el-form-item v-else :label="schema.label || propKey">
-              <el-input
+            <a-form-item v-else :label="schema.label || propKey">
+              <a-input
                 v-if="schema.type === 'string' && schema.format !== 'color'"
                 :value="getPropValue(String(propKey))"
-                @input="(val) => handlePropChange(String(propKey), val)"
+                @input="(val: string) => handlePropChange(String(propKey), val)"
                 :placeholder="`请输入${schema.label || propKey}`"
               />
-              <el-color-picker
+              <a-color-picker
                 v-else-if="schema.type === 'string' && schema.format === 'color'"
                 :value="getPropValue(String(propKey))"
-                  show-alpha
-                  @change="(val) => handlePropChange(String(propKey), val)"
+                :show-alpha="true"
+                @change="(val: string) => handlePropChange(String(propKey), val)"
               />
-              <el-input-number
+              <a-input-number
                 v-else-if="schema.type === 'number'"
                 :value="getPropValue(String(propKey))"
-                  @change="(val) => handlePropChange(String(propKey), val)"
-                  :min="schema.min"
+                @change="(val: string | number) => handlePropChange(String(propKey), val)"
+                :min="schema.min"
                 :max="schema.max"
                 :step="schema.step || 1"
               />
-              <el-switch
+              <a-switch
                 v-else-if="schema.type === 'boolean'"
                 :checked="getPropValue(String(propKey))"
-                @change="(val) => handlePropChange(String(propKey), val)"
+                @change="(val: boolean) => handlePropChange(String(propKey), val)"
               />
-              <el-select
+              <a-select
                 v-else-if="schema.type === 'select'"
                 :value="getPropValue(String(propKey))"
-                @change="(val) => handlePropChange(String(propKey), val)"
+                @change="(val: string) => handlePropChange(String(propKey), val)"
                 :placeholder="`请选择${schema.label || propKey}`"
               >
-                <el-option
+                <a-select-option
                   v-for="option in schema.options"
                   :key="option.value"
                   :label="option.label"
                   :value="option.value"
                 />
-              </el-select>
-              <el-input
+              </a-select>
+              <a-input
                 v-else
                 :value="getPropValue(String(propKey))"
-                @input="(val) => handlePropChange(String(propKey), val)"
+                @input="(val: string) => handlePropChange(String(propKey), val)"
                 :placeholder="`请输入${schema.label || propKey}`"
               />
-            </el-form-item>
+            </a-form-item>
           </template>
         </div>
         
         <!-- 渲染样式属性 -->
         <div class="property-section">
           <h4>样式属性</h4>
-          <el-form-item label="宽度">
-            <el-input 
+          <a-form-item label="宽度">
+            <a-input 
               :value="selectedComponent.props?.style?.width || ''"
-              @input="(val) => handlePropChange('style.width', val)"
+              @input="(val: string) => handlePropChange('style.width', val)"
               placeholder="例如: 200px"
             />
-          </el-form-item>
-          <el-form-item label="高度">
-            <el-input 
+          </a-form-item>
+          <a-form-item label="高度">
+            <a-input 
               :value="selectedComponent.props?.style?.height || ''"
-              @input="(val) => handlePropChange('style.height', val)"
+              @input="(val: string) => handlePropChange('style.height', val)"
               placeholder="例如: 100px"
             />
-          </el-form-item>
-          <el-form-item label="背景色">
-            <el-color-picker 
+          </a-form-item>
+          <a-form-item label="背景色">
+            <a-color-picker 
               :value="selectedComponent.props?.style?.background || ''"
-              show-alpha
-              @change="(val) => handlePropChange('style.background', val)"
+              :show-alpha="true"
+              @change="(val: string) => handlePropChange('style.background', val)"
             />
-          </el-form-item>
+          </a-form-item>
         </div>
-      </el-form>
-      
-      <!-- 操作按钮 -->
-      <div class="action-buttons">
-        <el-button 
-          type="danger" 
-          @click="designerState.removeComponent(selectedComponent.id)"
-        >
-          {{ ComponentRegistry.t('action.remove') }}
-        </el-button>
-      </div>
+      </a-form>
     </div>
   </div>
 </template>

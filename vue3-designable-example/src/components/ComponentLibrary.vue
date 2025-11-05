@@ -1,33 +1,3 @@
-<script setup lang="ts">
-import { computed, inject } from 'vue';
-import { ComponentRegistry } from '../engine/ComponentRegistry';
-import { ElIcon } from 'element-plus';
-import * as ElementPlusIconsVue from '@element-plus/icons-vue';
-
-// 获取设计器状态
-// 仅注入以支持组件库功能，当前未直接使用
-inject<any>('designerState');
-
-// 获取按组分类的组件
-const componentsByGroup = computed(() => {
-  return ComponentRegistry.getComponentsByGroup();
-});
-
-// 处理拖拽开始
-const handleDragStart = (event: DragEvent, componentId: string) => {
-  event.dataTransfer!.setData('application/json', componentId);
-  // 设置拖拽图像
-  if (event.target) {
-    const img = new Image();
-    img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="40" viewBox="0 0 80 40" fill="none"%3E%3Crect width="80" height="40" rx="4" fill="%23f0f0f0" stroke="%23409eff" stroke-width="2"/%3E%3Ctext x="40" y="25" font-family="Arial" font-size="14" fill="%23606266" text-anchor="middle" dominant-baseline="middle"%3E组件%3C/text%3E%3C/svg%3E';
-    event.dataTransfer!.setDragImage(img, 40, 20);
-  }
-};
-
-// 引入Element Plus图标组件
-// 全局注册图标，不需要defineComponent
-</script>
-
 <template>
   <div class="component-library">
     <div class="library-header">
@@ -41,7 +11,7 @@ const handleDragStart = (event: DragEvent, componentId: string) => {
         class="component-group"
       >
         <div class="group-header">
-          <h4>{{ ComponentRegistry.t(`components.${group}`) || group }}</h4>
+          <h4>{{ group }}</h4>
         </div>
         
         <div class="component-list">
@@ -49,13 +19,12 @@ const handleDragStart = (event: DragEvent, componentId: string) => {
             v-for="component in components" 
             :key="component.id"
             class="component-item"
-            draggable
-            @dragstart="handleDragStart($event, component.id)"
+            draggable="true"
+            @dragstart="handleDragStart($event, component)"
+            @dragend="handleDragEnd"
           >
             <div class="component-icon">
-              <ElIcon>
-                <component :is="ElementPlusIconsVue[component.icon as keyof typeof ElementPlusIconsVue] || ElementPlusIconsVue.Box" />
-              </ElIcon>
+              <i :class="['anticon', `anticon-${component.icon || 'appstore'}`]"></i>
             </div>
             <div class="component-name">{{ component.name }}</div>
           </div>
@@ -64,6 +33,61 @@ const handleDragStart = (event: DragEvent, componentId: string) => {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+import { ComponentRegistry } from '../engine/ComponentRegistry';
+
+// 获取按组分类的组件
+const componentsByGroup = computed(() => {
+  return ComponentRegistry.getComponentsByGroup();
+});
+
+// 处理拖拽开始
+const handleDragStart = (event: DragEvent, component: any) => {
+  try {
+    // 创建组件数据对象
+    const componentData = {
+      id: component.id,
+      name: component.name,
+      group: component.group,
+      type: 'component' // 明确标识这是组件拖拽数据
+    };
+    
+    // 序列化为JSON字符串
+    const jsonString = JSON.stringify(componentData);
+    console.log('ComponentLibrary: 设置拖拽数据:', componentData);
+    
+    // 同时设置两种格式的数据，确保兼容性
+    // 1. 优先使用application/json格式
+    event.dataTransfer!.setData('application/json', jsonString);
+    // 2. 同时设置text/plain格式作为备选
+    event.dataTransfer!.setData('text/plain', jsonString);
+    
+    // 设置拖拽效果
+    event.dataTransfer!.effectAllowed = 'copy';
+    
+    // 添加拖拽时的视觉提示
+    if (event.target) {
+      (event.target as HTMLElement).style.opacity = '0.5';
+    }
+  } catch (error) {
+    console.error('拖拽开始错误:', error);
+  }
+};
+
+// 处理拖拽结束
+const handleDragEnd = (event: DragEvent) => {
+  try {
+    // 恢复元素样式
+    if (event.target) {
+      (event.target as HTMLElement).style.opacity = '1';
+    }
+  } catch (error) {
+    console.error('拖拽结束错误:', error);
+  }
+};
+</script>
 
 <style scoped>
 .component-library {
@@ -150,13 +174,6 @@ const handleDragStart = (event: DragEvent, componentId: string) => {
   font-size: 12px;
   color: #606266;
   text-align: center;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .component-list {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* 滚动条样式 */

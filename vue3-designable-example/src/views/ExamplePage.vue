@@ -6,13 +6,13 @@
     </div>
 
     <div class="example-nav">
-      <el-tabs v-model="activeTab" type="card" @tab-click="handleTabClick">
-        <el-tab-pane label="设计器" name="designer">
+      <a-tabs v-model:activeKey="activeTab" type="card" @change="handleTabChange">
+        <a-tab-pane key="designer" tab="设计器">
           <div class="tab-content">
             <p>使用设计器创建和编辑你的页面布局，拖拽组件到设计区域即可开始设计。</p>
           </div>
-        </el-tab-pane>
-        <el-tab-pane label="使用指南" name="guide">
+        </a-tab-pane>
+        <a-tab-pane key="guide" tab="使用指南">
           <div class="tab-content">
             <h3>快速开始</h3>
             <ol class="guide-list">
@@ -22,13 +22,13 @@
               <li>拖拽调整组件位置或使用属性面板设置精确位置和大小</li>
             </ol>
           </div>
-        </el-tab-pane>
-        <el-tab-pane label="组件文档" name="docs">
+        </a-tab-pane>
+        <a-tab-pane key="docs" tab="组件文档">
           <div class="tab-content">
             <h3>组件说明</h3>
             <div class="component-docs">
-              <el-collapse v-model="activeDocs">
-                <el-collapse-item title="表单组件" name="forms">
+              <a-collapse v-model:activeKey="activeDocs">
+                <a-collapse-panel header="表单组件" key="forms">
                   <div class="doc-content">
                     <h4>Input 输入框</h4>
                     <p>用于文本输入，支持单行和多行模式，可设置占位符、默认值等。</p>
@@ -42,9 +42,8 @@
                     <p>用于布尔值切换，可设置选中和未选中时的文本和颜色。</p>
                     <pre><code>{{ getComponentSample('Switch') }}</code></pre>
                   </div>
-                </el-collapse-item>
-                
-                <el-collapse-item title="布局组件" name="layout">
+                </a-collapse-panel>
+                <a-collapse-panel header="布局组件" key="layout">
                   <div class="doc-content">
                     <h4>Card 卡片</h4>
                     <p>用于内容分组，可设置标题、边框、阴影等样式。</p>
@@ -54,9 +53,9 @@
                     <p>基于 24 分栏的栅格系统，用于页面布局。</p>
                     <pre><code>{{ getComponentSample('Row') }}</code></pre>
                   </div>
-                </el-collapse-item>
+                </a-collapse-panel>
                 
-                <el-collapse-item title="基础组件" name="basic">
+                <a-collapse-panel header="基础组件" key="basic">
                   <div class="doc-content">
                     <h4>Button 按钮</h4>
                     <p>可点击的操作按钮，支持多种类型和尺寸。</p>
@@ -70,20 +69,20 @@
                     <p>用于分隔内容区域。</p>
                     <pre><code>{{ getComponentSample('Divider') }}</code></pre>
                   </div>
-                </el-collapse-item>
+                </a-collapse-panel>
                 
-                <el-collapse-item title="数据展示" name="data">
+                <a-collapse-panel header="数据展示" key="data">
                   <div class="doc-content">
                     <h4>Table 表格</h4>
                     <p>用于展示结构化数据，支持分页、排序等功能。</p>
                     <pre><code>{{ getComponentSample('Table') }}</code></pre>
                   </div>
-                </el-collapse-item>
-              </el-collapse>
+                </a-collapse-panel>
+              </a-collapse>
             </div>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </a-tab-pane>
+    </a-tabs>
     </div>
 
     <div class="example-showcase">
@@ -112,7 +111,7 @@
 
 <script setup lang="ts">
 import { ref, inject } from 'vue';
-import { ElMessage } from 'element-plus';
+import { message } from 'ant-design-vue';
 
 // 引入设计器引擎
 const designerEngine = inject<any>('designerEngine');
@@ -310,8 +309,8 @@ const examples = [
 ];
 
 // Tab 切换处理
-const handleTabClick = (tab: any) => {
-  activeTab.value = tab.paneName;
+const handleTabChange = (activeKey: string) => {
+  activeTab.value = activeKey;
 };
 
 // 加载示例
@@ -324,15 +323,15 @@ const loadExample = (example: any) => {
       designerEngine.clear();
       // 加载示例数据
       designerEngine.load(exampleData);
-      ElMessage.success(`已加载示例: ${example.title}`);
+      message.success(`已加载示例: ${example.title}`);
       // 切换到设计器标签
       activeTab.value = 'designer';
     } catch (error) {
-      ElMessage.error('加载示例失败');
+      message.error('加载示例失败');
       console.error('加载示例失败:', error);
     }
   } else {
-    ElMessage.warning('设计器引擎未就绪');
+    message.warning('设计器引擎未就绪');
   }
 };
 
